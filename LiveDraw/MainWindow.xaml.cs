@@ -78,7 +78,7 @@ namespace AntFu7.LiveDraw
 
                 InitializeComponent();
                 SetColor(DefaultColorPicker);
-                SetEnable(false);
+                SetEnable(true);
                 SetTopMost(true);
                 SetDetailPanel(true);
                 SetBrushSize(_brushSizes[_brushIndex]);
@@ -89,7 +89,11 @@ namespace AntFu7.LiveDraw
                 MainInkCanvas.MouseLeftButtonUp += EndLine;
                 MainInkCanvas.MouseMove += MakeLine;
                 MainInkCanvas.MouseWheel += BrushSize;
+
                 //RightDocking();
+
+                Canvas.SetTop(Palette, SystemParameters.WorkArea.Size.Height - 200);
+                Canvas.SetLeft(Palette,  SystemParameters.WorkArea.Size.Width - 500);
 
             }
             else
@@ -188,14 +192,13 @@ namespace AntFu7.LiveDraw
             //SetTopMost(false);
             if (_enable == true)
             {
-                LineButton.IsActived = false;
                 EraserButton.IsActived = false;
-                SetStaticInfo("LiveDraw");
+                SetStaticInfo("画板");
                 MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink;
             }
             else
             {
-                SetStaticInfo("Locked");
+                SetStaticInfo("桌面");
                 MainInkCanvas.EditingMode = InkCanvasEditingMode.None; //No inking possible
             }
         }
@@ -239,7 +242,7 @@ namespace AntFu7.LiveDraw
             if (_eraserMode)
             {
                 MainInkCanvas.EditingMode = InkCanvasEditingMode.EraseByStroke;
-                SetStaticInfo("Eraser Mode");
+                SetStaticInfo("橡皮");
             }
             else
             {
@@ -258,7 +261,7 @@ namespace AntFu7.LiveDraw
         }
         private void SetTopMost(bool v)
         {
-            PinButton.IsActived = v;
+            //PinButton.IsActived = v;
             Topmost = v;
         }
         #endregion
@@ -384,18 +387,12 @@ namespace AntFu7.LiveDraw
 
         void EraserFunction()
         {
-            LineMode(false);
             if (EraseByPoint_Flag == (int)erase_mode.NONE)
             {
                 SetEraserMode(!_eraserMode);
-                EraserButton.ToolTip = "Toggle eraser (by point) mode (D)";
-                EraseByPoint_Flag = (int)erase_mode.ERASER;
-            }
-            else if (EraseByPoint_Flag == (int)erase_mode.ERASER)
-            {
                 EraserButton.IsActived = true;
-                SetStaticInfo("Eraser Mode (Point)");
-                EraserButton.ToolTip = "Toggle eraser - OFF";
+                SetStaticInfo("橡皮");
+                EraserButton.ToolTip = "关闭橡皮(E)";
                 double s = MainInkCanvas.EraserShape.Height;
                 MainInkCanvas.EraserShape = new EllipseStylusShape(s, s);
                 MainInkCanvas.EditingMode = InkCanvasEditingMode.EraseByPoint;
@@ -404,7 +401,7 @@ namespace AntFu7.LiveDraw
             else if (EraseByPoint_Flag == (int)erase_mode.ERASERBYPOINT)
             {
                 SetEraserMode(!_eraserMode);
-                EraserButton.ToolTip = "Toggle eraser mode (E)";
+                EraserButton.ToolTip = "橡皮(E)";
                 EraseByPoint_Flag = (int)erase_mode.NONE;
             }
         }
@@ -492,7 +489,7 @@ namespace AntFu7.LiveDraw
         private void ClearAniComplete(object sender, EventArgs e)
         {
             Clear();
-            Display("Cleared");
+            Display("已清除");
             MainInkCanvas.BeginAnimation(OpacityProperty, new DoubleAnimation(1, Duration3));
         }
         #endregion
@@ -554,7 +551,7 @@ namespace AntFu7.LiveDraw
         }
         private void LineButton_Click(object sender, RoutedEventArgs e)
         {
-            LineMode(!_lineMode);
+
         }
         private void UndoButton_Click(object sender, RoutedEventArgs e)
         {
@@ -613,34 +610,6 @@ namespace AntFu7.LiveDraw
             }
             try
             {
-                var s = SaveDialog("ImageExport_" + GenerateFileName(".png"), ".png",
-                    "Portable Network Graphics (*png)|*png");
-                if (s == Stream.Null) return;
-                var rtb = new RenderTargetBitmap((int)MainInkCanvas.ActualWidth, (int)MainInkCanvas.ActualHeight, 96d,
-                    96d, PixelFormats.Pbgra32);
-                rtb.Render(MainInkCanvas);
-                var encoder = new PngBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(rtb));
-                encoder.Save(s);
-                s.Close();
-                Display("Image Exported");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString());
-                Display("Export failed");
-            }
-        }
-        private delegate void NoArgDelegate();
-        private void ExportButton_RightClick(object sender, MouseButtonEventArgs e)
-        {
-            if (MainInkCanvas.Strokes.Count == 0)
-            {
-                Display("Nothing to save");
-                return;
-            }
-            try
-            {
                 var s = SaveDialog("ImageExportWithBackground_" + GenerateFileName(".png"), ".png", "Portable Network Graphics (*png)|*png");
                 if (s == Stream.Null) return;
                 Palette.Opacity = 0;
@@ -654,12 +623,41 @@ namespace AntFu7.LiveDraw
                 image.Save(s, ImageFormat.Png);
                 Palette.Opacity = 1;
                 s.Close();
-                Display("Image Exported");
+                Display("已保存");
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.ToString());
-                Display("Export failed");
+                Display("保存失败");
+            }
+        }
+
+        private delegate void NoArgDelegate();
+        private void ExportButton_RightClick(object sender, MouseButtonEventArgs e)
+        {
+            if (MainInkCanvas.Strokes.Count == 0)
+            {
+                Display("Nothing to save");
+                return;
+            }
+            try
+            {
+                var s = SaveDialog("ImageExport_" + GenerateFileName(".png"), ".png",
+                    "Portable Network Graphics (*png)|*png");
+                if (s == Stream.Null) return;
+                var rtb = new RenderTargetBitmap((int)MainInkCanvas.ActualWidth, (int)MainInkCanvas.ActualHeight, 96d,
+                    96d, PixelFormats.Pbgra32);
+                rtb.Render(MainInkCanvas);
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(rtb));
+                encoder.Save(s);
+                s.Close();
+                Display("已保存");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+                Display("保存失败");
             }
         }
 
@@ -677,7 +675,7 @@ namespace AntFu7.LiveDraw
             if (_eraserMode)
             {
                 SetEraserMode(!_eraserMode);
-                EraserButton.ToolTip = "Toggle eraser mode (E)";
+                EraserButton.ToolTip = "橡皮(E)";
                 EraseByPoint_Flag = (int)erase_mode.NONE;
             }
         }
@@ -830,7 +828,6 @@ namespace AntFu7.LiveDraw
                 case Key.L:
                     if (_eraserMode == true)
                         SetEraserMode(false);
-                    LineMode(true);
                     break;
 
                 /*
@@ -870,29 +867,6 @@ namespace AntFu7.LiveDraw
         private Point _startPoint;
         private Stroke _lastStroke;
 
-        private void LineMode(bool l)
-        {
-            if (_enable)
-            {
-
-                _lineMode = l;
-                if (_lineMode)
-                {
-                    EraseByPoint_Flag = (int)erase_mode.ERASERBYPOINT;
-                    EraserFunction();
-                    SetEraserMode(false);
-                    EraserButton.IsActived = false;
-                    LineButton.IsActived = l;
-                    SetStaticInfo("LineMode");
-                    MainInkCanvas.EditingMode = InkCanvasEditingMode.None;
-                    MainInkCanvas.UseCustomCursor = true;
-                }
-                else
-                {
-                    SetEnable(true);
-                }
-            }
-        }
         private void StartLine(object sender, MouseButtonEventArgs e)
         {
             _isMoving = true;
