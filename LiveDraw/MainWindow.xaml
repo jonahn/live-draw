@@ -110,14 +110,14 @@
                         <Grid x:Name="BasicButtonPanel" Width="{StaticResource HorizontalModeColorPickersPanel}" Margin="0">
                             <WrapPanel VerticalAlignment="Top" Margin="0,0,10,0" Orientation="Vertical" HorizontalAlignment="Center">
                                 <WrapPanel VerticalAlignment="Top" Margin="0,0,10,0" Orientation="Horizontal" HorizontalAlignment="Center">
-                                    <Button x:Name="DetailToggler" Style="{StaticResource ResponseButton}" Background="#338A8A8A" VerticalAlignment="Center" Click="DetailToggler_Click" ToolTip="Toggle more options" Margin="0,0,5,0" >
+                                    <Button x:Name="DetailToggler" Style="{StaticResource ResponseButton}" Background="#338A8A8A" VerticalAlignment="Center" Click="DetailToggler_Click" ToolTip="工具栏" Margin="0,0,5,0" >
                                         <Path Data="{DynamicResource IconArrow}" Margin="0,0,1,1" Width="10">
                                             <Path.RenderTransform>
                                                 <RotateTransform x:Name="DetailTogglerRotate"/>
                                             </Path.RenderTransform>
                                         </Path>
                                     </Button>
-                                    <Button x:Name="CloseButton" Style="{StaticResource SpinningButton}" Background="#338A8A8A" Click="CloseButton_Click"  VerticalAlignment="Center" ToolTip="Exit" Margin="5,0,0,0" >
+                                    <Button x:Name="CloseButton" Style="{StaticResource SpinningButton}" Background="#338A8A8A" Click="CloseButton_Click"  VerticalAlignment="Center" ToolTip="退出" Margin="5,0,0,0" >
                                         <Path Data="{DynamicResource IconCross}" Margin="0,0,1,1" Width="10">
                                         </Path>
                                     </Button>
@@ -268,6 +268,12 @@
                                         <RotateTransform CenterX="16" CenterY="16" Angle="{Binding MinWidth, ElementName=Palette}"/>
                                     </local:ActivableButton.RenderTransform>
                                     <Path Data="{DynamicResource IconNoAccess}" />
+                                </local:ActivableButton>
+                                <local:ActivableButton x:Name="MinisizeButton" Click="MinimizeButton_Click" ToolTip="回到课堂">
+                                    <local:ActivableButton.RenderTransform >
+                                        <RotateTransform CenterX="16" CenterY="16" Angle="{Binding MinWidth, ElementName=Palette}"/>
+                                    </local:ActivableButton.RenderTransform>
+                                    <Path Data="{DynamicResource IconMinimize}" />
                                 </local:ActivableButton>
                                 <local:ActivableButton x:Name="OrientationButton" Click="OrientationButton_Click" ToolTip="旋转工具栏">
                                     <Path Data="{DynamicResource IconMinimize}" RenderTransformOrigin="0.5,0.5">

@@ -16,6 +16,10 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Brush = System.Windows.Media.Brush;
 using Point = System.Windows.Point;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading;
+using System.Text;
 
 namespace AntFu7.LiveDraw
 {
@@ -24,6 +28,9 @@ namespace AntFu7.LiveDraw
     public partial class MainWindow : Window
     {
         public static int EraseByPoint_Flag = 0;
+
+        UdpClient UDPsend;
+        IPEndPoint endpoint;
 
         public enum erase_mode
         {
@@ -95,6 +102,8 @@ namespace AntFu7.LiveDraw
                 Canvas.SetTop(Palette, SystemParameters.WorkArea.Size.Height - 200);
                 Canvas.SetLeft(Palette,  SystemParameters.WorkArea.Size.Width - 500);
 
+                UDPsend = new UdpClient(new IPEndPoint(IPAddress.Any, 0));
+                endpoint = new IPEndPoint(IPAddress.Broadcast, 6001);
             }
             else
             {
@@ -104,6 +113,9 @@ namespace AntFu7.LiveDraw
 
         private void Exit(object sender, EventArgs e)
         {
+            byte[] buf = Encoding.Default.GetBytes("SHOW_CLASS");
+            UDPsend.Send(buf, buf.Length, endpoint);
+            Thread.Sleep(300);
             if (IsUnsaved())
                 QuickSave("ExitingAutoSave_");
 
@@ -663,7 +675,9 @@ namespace AntFu7.LiveDraw
 
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
         {
-            this.WindowState = WindowState.Minimized;
+            byte[] buf = Encoding.Default.GetBytes("SHOW_CLASS");
+            UDPsend.Send(buf, buf.Length, endpoint);
+            //this.WindowState = WindowState.Minimized;
         }
         private void HideButton_Click(object sender, RoutedEventArgs e)
         {
