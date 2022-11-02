@@ -547,10 +547,14 @@ namespace AntFu7.LiveDraw
         }
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            Topmost = false;
-            var anim = new DoubleAnimation(0, Duration3);
-            anim.Completed += Exit;
-            BeginAnimation(OpacityProperty, anim);
+            byte[] buf = Encoding.Default.GetBytes("SHOW_CLASS");
+            udpSend.Send(buf, buf.Length, endpoint);
+            this.WindowState = WindowState.Minimized;
+
+            //Topmost = false;
+            //var anim = new DoubleAnimation(0, Duration3);
+            //anim.Completed += Exit;
+            //BeginAnimation(OpacityProperty, anim);
         }
 
         private void ColorPickers_Click(object sender, RoutedEventArgs e)
