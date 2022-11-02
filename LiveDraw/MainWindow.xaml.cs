@@ -29,8 +29,9 @@ namespace AntFu7.LiveDraw
     {
         public static int EraseByPoint_Flag = 0;
 
-        UdpClient UDPsend;
+        UdpClient udpSend;
         IPEndPoint endpoint;
+        UdpClient udpRecv;
 
         public enum erase_mode
         {
@@ -72,6 +73,7 @@ namespace AntFu7.LiveDraw
         #endregion*/
 
         #region /---------Lifetime---------/
+        public delegate void delegate1();
 
         public MainWindow()
         {
@@ -100,10 +102,15 @@ namespace AntFu7.LiveDraw
                 //RightDocking();
 
                 Canvas.SetTop(Palette, SystemParameters.WorkArea.Size.Height - 200);
-                Canvas.SetLeft(Palette,  SystemParameters.WorkArea.Size.Width - 500);
+                Canvas.SetLeft(Palette,  SystemParameters.WorkArea.Size.Width - 520);
 
-                UDPsend = new UdpClient(new IPEndPoint(IPAddress.Any, 0));
+                udpSend = new UdpClient(new IPEndPoint(IPAddress.Any, 0));
                 endpoint = new IPEndPoint(IPAddress.Broadcast, 6001);
+                udpRecv = new UdpClient(new IPEndPoint(IPAddress.Any, 6101));
+                Thread thread = new Thread(receiveUdpMsg);//用线程接收，避免UI卡住
+                thread.IsBackground = true;
+                thread.Start(udpRecv);
+
             }
             else
             {
@@ -111,10 +118,36 @@ namespace AntFu7.LiveDraw
             }
         }
 
+        private void restoreWindow() {
+            this.WindowState = WindowState.Normal;
+        }
+
+        private void closeWindow() {
+            Application.Current.Shutdown(0);
+        }
+
+        private void receiveUdpMsg(object obj)
+        {
+            UdpClient client = obj as UdpClient;
+            IPEndPoint endpoint = new IPEndPoint(IPAddress.Any, 0);
+            while (true)
+            {
+                client.BeginReceive(delegate (IAsyncResult result) {
+                    string recv = result.AsyncState.ToString();
+                    if (recv == "SHOW"){
+                        Dispatcher.BeginInvoke(DispatcherPriority.Normal, new delegate1(restoreWindow));
+                    }
+                    else if (recv == "CLOSE") {
+                        Dispatcher.BeginInvoke(DispatcherPriority.Normal, new delegate1(closeWindow));
+                    }
+                }, Encoding.UTF8.GetString(client.Receive(ref endpoint)));
+            }
+        }
+
         private void Exit(object sender, EventArgs e)
         {
             byte[] buf = Encoding.Default.GetBytes("SHOW_CLASS");
-            UDPsend.Send(buf, buf.Length, endpoint);
+            udpSend.Send(buf, buf.Length, endpoint);
             Thread.Sleep(300);
             if (IsUnsaved())
                 QuickSave("ExitingAutoSave_");
@@ -283,7 +316,7 @@ namespace AntFu7.LiveDraw
         private StrokeCollection _preLoadStrokes = null;
         private void QuickSave(string filename = "QuickSave_")
         {
-            Save(new FileStream("Save\\" + filename + GenerateFileName(), FileMode.OpenOrCreate));
+            Save(new FileStream("Save\\" + filename + GenerateFileName(".png"), FileMode.OpenOrCreate));
         }
         private void Save(Stream fs)
         {
@@ -676,9 +709,36 @@ namespace AntFu7.LiveDraw
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
         {
             byte[] buf = Encoding.Default.GetBytes("SHOW_CLASS");
-            UDPsend.Send(buf, buf.Length, endpoint);
-            //this.WindowState = WindowState.Minimized;
+            udpSend.Send(buf, buf.Length, endpoint);
+            this.WindowState = WindowState.Minimized;
         }
+
+        private void BackScreenShotButton_Click(object sender, RoutedEventArgs e) {
+            backWithScreenShot();
+        }
+
+        private void backWithScreenShot() {
+            this.WindowState = WindowState.Minimized;
+            string fileName = GenerateFileName(".png");
+            string filePath = "Save\\" + fileName;
+            FileStream stream = new FileStream(filePath, FileMode.OpenOrCreate);
+            Palette.Opacity = 0;
+            Palette.Dispatcher.Invoke(DispatcherPriority.Render, (NoArgDelegate)delegate { });
+            Thread.Sleep(100);
+            var fromHwnd = Graphics.FromHwnd(IntPtr.Zero);
+            var w = (int)(SystemParameters.PrimaryScreenWidth * fromHwnd.DpiX / 96.0);
+            var h = (int)(SystemParameters.PrimaryScreenHeight * fromHwnd.DpiY / 96.0);
+            var image = new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            Graphics.FromImage(image).CopyFromScreen(0, 0, 0, 0, new System.Drawing.Size(w, h), CopyPixelOperation.SourceCopy);
+            image.Save(stream, ImageFormat.Png);
+            Palette.Opacity = 1;
+            stream.Close();
+
+            byte[] buf = Encoding.Default.GetBytes("SHOW_CLASS?image=" + fileName);
+            udpSend.Send(buf, buf.Length, endpoint);
+        }
+
+
         private void HideButton_Click(object sender, RoutedEventArgs e)
         {
             SetInkVisibility(!_inkVisibility);

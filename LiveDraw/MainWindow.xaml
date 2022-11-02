@@ -123,7 +123,7 @@
                                     </Button>
                                 </WrapPanel>
                                 <Border x:Name="PaletteGrip" Width="150" Cursor="SizeAll" Height="25" MouseDown="PaletteGrip_MouseDown"  HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0" Padding="3" >
-                                    <Border CornerRadius="5" Background="#338A8A8A" Margin="0,0,0,0">
+                                    <Border CornerRadius="5" Background="#FF000000" Margin="0,0,0,0">
                                         <TextBlock x:Name="InfoBox" Foreground="White" FontSize="12" FontFamily="Consolas" Margin="0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     </Border>
                                 </Border>
@@ -216,8 +216,8 @@
                                 <WrapPanel.Resources>
                                     <Style TargetType="local:ActivableButton" BasedOn="{StaticResource FunctionalButton}">
                                         <Setter Property="Padding" Value="0"/>
-                                        <Setter Property="Width" Value="32"/>
-                                        <Setter Property="Height" Value="32"/>
+                                        <Setter Property="Width" Value="40"/>
+                                        <Setter Property="Height" Value="40"/>
                                     </Style>
                                 </WrapPanel.Resources>
                                 <local:ActivableButton x:Name="BrushSwitchButton" Click="BrushSwitchButton_Click" ToolTip="颜色预览">
@@ -274,6 +274,12 @@
                                         <RotateTransform CenterX="16" CenterY="16" Angle="{Binding MinWidth, ElementName=Palette}"/>
                                     </local:ActivableButton.RenderTransform>
                                     <Path Data="{DynamicResource IconMinimize}" />
+                                </local:ActivableButton>
+                                <local:ActivableButton x:Name="BackScreenShotButton" Click="BackScreenShotButton_Click" ToolTip="截屏返回课堂">
+                                    <local:ActivableButton.RenderTransform >
+                                        <RotateTransform CenterX="16" CenterY="16" Angle="{Binding MinWidth, ElementName=Palette}"/>
+                                    </local:ActivableButton.RenderTransform>
+                                    <Path Data="{DynamicResource IconScreenShot}" />
                                 </local:ActivableButton>
                                 <local:ActivableButton x:Name="OrientationButton" Click="OrientationButton_Click" ToolTip="旋转工具栏">
                                     <Path Data="{DynamicResource IconMinimize}" RenderTransformOrigin="0.5,0.5">
