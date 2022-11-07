@@ -18,8 +18,8 @@ using Brush = System.Windows.Media.Brush;
 using Point = System.Windows.Point;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
 using System.Text;
+using System.IO.Pipes;
 
 namespace AntFu7.LiveDraw
 {
@@ -31,7 +31,14 @@ namespace AntFu7.LiveDraw
 
         UdpClient udpSend;
         IPEndPoint endpoint;
-        UdpClient udpRecv;
+
+        Thread pipeThread;
+
+        bool running = true;
+        string pipeName = "LiveDrawBoard";
+        int maxNumber = 1;
+        NamedPipeServerStream pipeServer;
+        Helper.PipeStream pipeStream;
 
         public enum erase_mode
         {
@@ -103,14 +110,6 @@ namespace AntFu7.LiveDraw
 
                 Canvas.SetTop(Palette, SystemParameters.WorkArea.Size.Height - 200);
                 Canvas.SetLeft(Palette,  SystemParameters.WorkArea.Size.Width - 520);
-
-                udpSend = new UdpClient(new IPEndPoint(IPAddress.Any, 0));
-                endpoint = new IPEndPoint(IPAddress.Broadcast, 6001);
-                udpRecv = new UdpClient(new IPEndPoint(IPAddress.Any, 6101));
-                Thread thread = new Thread(receiveUdpMsg);//用线程接收，避免UI卡住
-                thread.IsBackground = true;
-                thread.Start(udpRecv);
-
             }
             else
             {
@@ -123,24 +122,64 @@ namespace AntFu7.LiveDraw
         }
 
         private void closeWindow() {
+            Thread.Sleep(300);
             Application.Current.Shutdown(0);
         }
 
-        private void receiveUdpMsg(object obj)
+        private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            UdpClient client = obj as UdpClient;
-            IPEndPoint endpoint = new IPEndPoint(IPAddress.Any, 0);
-            while (true)
+            udpSend = new UdpClient(new IPEndPoint(IPAddress.Any, 0));
+            endpoint = new IPEndPoint(IPAddress.Broadcast, 6001);
+            pipeThread = new Thread(receivePipeMsg);//用线程接收，避免UI卡住
+            pipeThread.Start();
+        }
+
+        private void receivePipeMsg()
+        {
+            /*
+            if (recv == "SHOW")
             {
-                client.BeginReceive(delegate (IAsyncResult result) {
-                    string recv = result.AsyncState.ToString();
-                    if (recv == "SHOW"){
-                        Dispatcher.BeginInvoke(DispatcherPriority.Normal, new delegate1(restoreWindow));
+                Dispatcher.BeginInvoke(DispatcherPriority.Normal, new delegate1(restoreWindow));
+            }
+            else if (recv == "CLOSE")
+            {
+                Dispatcher.BeginInvoke(DispatcherPriority.Normal, new delegate1(closeWindow));
+            }
+            */
+            while (running) {
+                using (pipeServer = new NamedPipeServerStream(pipeName, PipeDirection.InOut, maxNumber)) {
+                    try
+                    {
+                        pipeServer.WaitForConnection();
+                        using (pipeStream = new Helper.PipeStream(pipeServer))
+                        {
+                            while (true)
+                            {
+                                string msg = pipeStream.Receive();
+                                //MessageBox.Show(msg, "服务器");
+                                if (msg == null)
+                                {
+                                    break;
+                                }
+                                if (msg.Contains("SHOW"))
+                                {
+                                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, new delegate1(restoreWindow));
+                                }
+                                else if (msg.Contains("CLOSE"))
+                                {
+                                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, new delegate1(closeWindow));
+                                    running = false;
+                                    break;
+                                }
+                            }
+                            pipeServer.Close();
+                        }
                     }
-                    else if (recv == "CLOSE") {
-                        Dispatcher.BeginInvoke(DispatcherPriority.Normal, new delegate1(closeWindow));
+                    catch (Exception ex) {
+                        System.Console.Write(ex);
+                        //MessageBox.Show(ex.ToString(), "服务器");
                     }
-                }, Encoding.UTF8.GetString(client.Receive(ref endpoint)));
+                }
             }
         }
 
@@ -724,7 +763,7 @@ namespace AntFu7.LiveDraw
         private void backWithScreenShot() {
             this.WindowState = WindowState.Minimized;
             string fileName = GenerateFileName(".png");
-            string filePath = "Save\\" + fileName;
+            string filePath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\interaction_class\\images\\" + fileName;
             FileStream stream = new FileStream(filePath, FileMode.OpenOrCreate);
             Palette.Opacity = 0;
             Palette.Dispatcher.Invoke(DispatcherPriority.Render, (NoArgDelegate)delegate { });
@@ -938,7 +977,10 @@ namespace AntFu7.LiveDraw
             }
         }
         #endregion
-
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
+            running = false;
+            e.Cancel = false;
+        }
         #region /------ Line Mode -------/
         private bool _isMoving = false;
         private bool _lineMode = false;
