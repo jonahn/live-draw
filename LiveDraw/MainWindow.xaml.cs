@@ -29,16 +29,10 @@ namespace AntFu7.LiveDraw
     {
         public static int EraseByPoint_Flag = 0;
 
-        UdpClient udpSend;
-        IPEndPoint endpoint;
-
         Thread pipeThread;
 
         bool running = true;
         string pipeName = "LiveDrawBoard";
-        int maxNumber = 1;
-        NamedPipeServerStream pipeServer;
-        Helper.PipeStream pipeStream;
 
         public enum erase_mode
         {
@@ -128,8 +122,6 @@ namespace AntFu7.LiveDraw
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            udpSend = new UdpClient(new IPEndPoint(IPAddress.Any, 0));
-            endpoint = new IPEndPoint(IPAddress.Broadcast, 6001);
             pipeThread = new Thread(receivePipeMsg);//用线程接收，避免UI卡住
             pipeThread.Start();
         }
@@ -147,20 +139,15 @@ namespace AntFu7.LiveDraw
             }
             */
             while (running) {
-                using (pipeServer = new NamedPipeServerStream(pipeName, PipeDirection.InOut, maxNumber)) {
+                using (var pipeServer = new NamedPipeServerStream(pipeName, PipeDirection.InOut)) {
                     try
                     {
                         pipeServer.WaitForConnection();
-                        using (pipeStream = new Helper.PipeStream(pipeServer))
+                        using (var stream = new StreamReader(pipeServer))
                         {
-                            while (true)
-                            {
-                                string msg = pipeStream.Receive();
-                                //MessageBox.Show(msg, "服务器");
-                                if (msg == null)
+                           string msg = stream.ReadLine();
+                           if (msg != null)
                                 {
-                                    break;
-                                }
                                 if (msg.Contains("SHOW"))
                                 {
                                     Dispatcher.BeginInvoke(DispatcherPriority.Normal, new delegate1(restoreWindow));
@@ -171,9 +158,13 @@ namespace AntFu7.LiveDraw
                                     running = false;
                                     break;
                                 }
-                            }
-                            pipeServer.Close();
+                           }
+                           stream.Dispose();
+                           stream.Close();
                         }
+                        pipeServer.Disconnect();
+                        pipeServer.Dispose();
+                        pipeServer.Close();
                     }
                     catch (Exception ex) {
                         System.Console.Write(ex);
@@ -183,10 +174,32 @@ namespace AntFu7.LiveDraw
             }
         }
 
+
+        private void sendMessageToMain(string message) {
+            using (var client = new NamedPipeClientStream(".", "interactionClass", PipeDirection.InOut))
+            {
+                try
+                {
+                    client.Connect(500);
+                    using (var pipe = new StreamWriter(client))
+                    {
+                       pipe.WriteLine(message);
+                       pipe.Flush();
+                       pipe.Dispose();
+                    }
+                    client.Close();
+                }
+                catch (Exception ex)
+                {
+                    //MessageBox.Show(ex.Message.ToString(), "桌面");
+                }
+            }
+
+        }
+
         private void Exit(object sender, EventArgs e)
         {
-            byte[] buf = Encoding.Default.GetBytes("SHOW_CLASS");
-            udpSend.Send(buf, buf.Length, endpoint);
+            sendMessageToMain("SHOW_CLASS");
             Thread.Sleep(300);
             if (IsUnsaved())
                 QuickSave("ExitingAutoSave_");
@@ -586,8 +599,7 @@ namespace AntFu7.LiveDraw
         }
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            byte[] buf = Encoding.Default.GetBytes("SHOW_CLASS");
-            udpSend.Send(buf, buf.Length, endpoint);
+            sendMessageToMain("SHOW_CLASS");
             this.WindowState = WindowState.Minimized;
 
             //Topmost = false;
@@ -751,8 +763,7 @@ namespace AntFu7.LiveDraw
 
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
         {
-            byte[] buf = Encoding.Default.GetBytes("SHOW_CLASS");
-            udpSend.Send(buf, buf.Length, endpoint);
+            sendMessageToMain("SHOW_CLASS");
             this.WindowState = WindowState.Minimized;
         }
 
@@ -777,8 +788,7 @@ namespace AntFu7.LiveDraw
             Palette.Opacity = 1;
             stream.Close();
 
-            byte[] buf = Encoding.Default.GetBytes("SHOW_CLASS?image=" + fileName);
-            udpSend.Send(buf, buf.Length, endpoint);
+            sendMessageToMain("SHOW_CLASS?image=" + fileName);
         }
 
 
